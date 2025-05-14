@@ -1,0 +1,6 @@
+# Ignore the 'config' folder
+/config/keys_dev.js
+
+# Ignore the 'node_modules' folder
+/node_modules/*
+
