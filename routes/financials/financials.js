@@ -16,8 +16,8 @@ router.post('/create-financial', requireAuth, async (req, res) => {
       expenses,
       gameFinancesTotal,
       totalExpenses,
-      moneyBalance,
       notes,
+      actualCashCount,  
       createdBy,
     } = req.body
 
@@ -35,6 +35,18 @@ router.post('/create-financial', requireAuth, async (req, res) => {
       sum: Number(game.sum),
     }))
 
+    // Calculate daily profit
+    const dailyProfit = gameFinancesTotal - totalExpenses
+
+    // Find the most recent financial entry for this store
+    const previousFinancial = await Financial.findOne({ storeId })
+      .sort({ date: -1 })
+      .select('cash')
+
+    // Calculate cash amount based on previous entry
+    const previousCash = previousFinancial ? previousFinancial.cash : 0
+    const cash = previousCash + dailyProfit
+
     const newFinancial = new Financial({
       _user: req.user._id,
       storeId,
@@ -43,8 +55,9 @@ router.post('/create-financial', requireAuth, async (req, res) => {
       expenses: formattedExpenses,
       totalMoneyIn: gameFinancesTotal > 0 ? gameFinancesTotal : 0,
       totalMoneyOut: gameFinancesTotal < 0 ? Math.abs(gameFinancesTotal) : 0,
-      moneyBalance: Number(moneyBalance),
-      dailyProfit: gameFinancesTotal - totalExpenses,
+      dailyProfit,
+      cash,
+      actualCashCount,
       notes,
       createdBy,
     })
@@ -62,6 +75,9 @@ router.get('/user-financials', requireAuth, async (req, res) => {
 })
 
 router.patch('/edit-financial', requireAuth, async (req, res) => {
+  console.log(`@ edit-financial`);
+  console.log('Request body:', req.body);
+  
   try {
     const {
       _id,
@@ -69,34 +85,70 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
       storeId,
       gameFinances,
       expenses,
-      totalMoneyIn,
-      totalMoneyOut,
+      gameFinancesTotal,
+      totalExpenses,
       moneyBalance,
-      dailyProfit,
       notes,
+      actualCashCount,
       updatedBy,
     } = req.body
 
+    // Find the financial record to update
+    const financialToUpdate = await Financial.findById(_id)
+    console.log('financialToUpdate before:', financialToUpdate)
+    console.log('actualCashCount from request:', actualCashCount)
+    
+    if (!financialToUpdate) {
+      console.log('Financial record not found')
+      return res.status(404).json({ error: 'Financial record not found' })
+    }
+
+    // Find the previous financial entry
+    const previousFinancial = await Financial.findOne({
+      storeId,
+      date: { $lt: new Date(date) },
+    })
+      .sort({ date: -1 })
+      .select('cash')
+
+    // Calculate new cash amount based on the previous entry's cash
+    const previousCash = previousFinancial ? previousFinancial.cash : 0
+    const cash = previousCash + moneyBalance
+
     // Update the financial record
+    const updateData = {
+      date,
+      storeId,
+      gameFinances,
+      expenses,
+      totalMoneyIn: gameFinancesTotal,
+      totalMoneyOut: totalExpenses,
+      dailyProfit: moneyBalance,
+      cash,
+      actualCashCount,
+      notes,
+      updatedBy,
+      updatedAt: Date.now(),
+    }
+    console.log('Update data:', updateData)
+
     const updatedFinancial = await Financial.findByIdAndUpdate(
       _id,
-      {
-        date,
-        storeId,
-        gameFinances,
-        expenses,
-        totalMoneyIn,
-        totalMoneyOut,
-        moneyBalance,
-        dailyProfit,
-        notes,
-        updatedBy,
-        updatedAt: Date.now(),
-      },
+      updateData,
       { new: true, runValidators: true }
     )
-    if (!updatedFinancial) {
-      return res.status(404).json({ error: 'Financial record not found' })
+    console.log('updatedFinancial after:', updatedFinancial)
+
+    // Update all subsequent financial records' cash amounts
+    const subsequentFinancials = await Financial.find({
+      storeId,
+      date: { $gt: new Date(date) },
+    }).sort({ date: 1 })
+
+    let runningCash = cash
+    for (const financial of subsequentFinancials) {
+      runningCash += financial.dailyProfit
+      await Financial.findByIdAndUpdate(financial._id, { cash: runningCash })
     }
 
     // Fetch all financials for the user
@@ -106,6 +158,7 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
 
     res.json(financials)
   } catch (err) {
+    console.error('Error in edit-financial:', err)
     res.status(500).json({ error: 'Error updating financial record' })
   }
 })
@@ -117,11 +170,43 @@ router.post('/fetch-store-financials', requireAuth, async (req, res) => {
 })
 
 router.post('/delete-financial', requireAuth, async (req, res) => {
-  const { _id } = req.body
-  const financialToDeltet = await Financial.findByIdAndDelete(_id)
-  const { storeId } = financialToDeltet
-  const financials = await Financial.find({ storeId })
-  res.json(financials)
-})  
+  try {
+    const { _id } = req.body
+    const financialToDelete = await Financial.findById(_id)
+    if (!financialToDelete) {
+      return res.status(404).json({ error: 'Financial record not found' })
+    }
+
+    const { storeId, date } = financialToDelete
+
+    // Delete the financial record
+    await Financial.findByIdAndDelete(_id)
+
+    // Recalculate cash amounts for all subsequent entries
+    const subsequentFinancials = await Financial.find({
+      storeId,
+      date: { $gt: date },
+    }).sort({ date: 1 })
+
+    // Find the new previous entry
+    const newPreviousFinancial = await Financial.findOne({
+      storeId,
+      date: { $lt: date },
+    })
+      .sort({ date: -1 })
+      .select('cash')
+
+    let runningCash = newPreviousFinancial ? newPreviousFinancial.cash : 0
+    for (const financial of subsequentFinancials) {
+      runningCash += financial.dailyProfit
+      await Financial.findByIdAndUpdate(financial._id, { cash: runningCash })
+    }
+
+    const financials = await Financial.find({ storeId })
+    res.json(financials)
+  } catch (err) {
+    res.status(500).json({ error: 'Error deleting financial record' })
+  }
+})
 
 module.exports = router

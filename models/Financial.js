@@ -72,6 +72,15 @@ const FinancialSchema = new Schema({
   dailyProfit: {
     type: Number,
   },
+  cash: {
+    type: Number,
+    default: 0,
+    required: true,
+  },
+  actualCashCount: {
+    type: Number,
+    default: 0,
+  },
   notes: {
     type: String,
   },
@@ -104,9 +113,17 @@ FinancialSchema.pre('save', function (next) {
   this.totalMoneyOut = gameFinancesTotal < 0 ? Math.abs(gameFinancesTotal) : 0
   this.totalMoneyOut += expensesTotal
 
-  // Calculate daily profit and money balance
+  // Calculate daily profit
   this.dailyProfit = this.totalMoneyIn - this.totalMoneyOut
-  // this.moneyBalance = this.dailyProfit - expensesTotal
+
+  // Update cash amount
+  if (this.isNew) {
+    // For new entries, cash is the daily profit
+    this.cash = this.dailyProfit
+  } else {
+    // For existing entries, we need to find the previous entry's cash amount
+    // This will be handled in the route handler since we need to query the database
+  }
 
   next()
 })
