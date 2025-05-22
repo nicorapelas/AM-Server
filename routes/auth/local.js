@@ -91,6 +91,7 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body
   // Check if user with email registered
   const user = await User.findOne({ email })
+  console.log('user before login', user)
   if (!user) {
     errors.email = 'Invalid username or password'
     res.json({ error: errors })
@@ -104,6 +105,7 @@ router.post('/login', async (req, res) => {
     return
   }
   try {
+    console.log('user before comparePassword', user)
     await user.comparePassword(password)
     const token = jwt.sign({ userId: user._id }, keys.JWT.secret)
     console.log('token', token)
