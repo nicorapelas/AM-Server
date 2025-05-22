@@ -14,7 +14,18 @@ module.exports = (app) => {
   // Express middleware
   app.use(express.urlencoded({ extended: true }))
   app.use(express.json())
-  app.use(cors())
+  
+  // CORS configuration
+  const corsOptions = {
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL  // Your Vercel domain
+      : ['http://localhost:3000', 'http://localhost:5000'],  // Local development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Authorization']
+  }
+  app.use(cors(corsOptions))
 
   app.use('/', root)
   app.use('/stores', stores)

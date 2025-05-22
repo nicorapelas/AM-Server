@@ -14,6 +14,14 @@ const app = express()
 
 app.use(cookieParser())
 
+// Error logging middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  console.error('Request headers:', req.headers);
+  console.error('Request origin:', req.headers.origin);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
+
 require('./startup/routes')(app)
 require('./startup/db')()
 
