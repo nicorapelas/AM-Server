@@ -14,6 +14,16 @@ const app = express()
 
 app.use(cookieParser())
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
+require('./startup/routes')(app)
+require('./startup/db')()
+
 // Error logging middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -21,9 +31,6 @@ app.use((err, req, res, next) => {
   console.error('Request origin:', req.headers.origin);
   res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
-
-require('./startup/routes')(app)
-require('./startup/db')()
 
 // Handlebars middleware
 app.engine(
