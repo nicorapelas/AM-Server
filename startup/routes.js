@@ -41,6 +41,15 @@ module.exports = (app) => {
   
   app.use(cors(corsOptions))
 
+  // Add cache control middleware for auth routes
+  app.use('/auth', (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    next();
+  });
+
   app.use('/', root)
   app.use('/stores', stores)
   app.use('/games', games)
