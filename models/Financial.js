@@ -109,9 +109,15 @@ FinancialSchema.pre('save', function (next) {
   )
 
   // Update totals
-  this.totalMoneyIn = gameFinancesTotal > 0 ? gameFinancesTotal : 0
-  this.totalMoneyOut = gameFinancesTotal < 0 ? Math.abs(gameFinancesTotal) : 0
-  this.totalMoneyOut += expensesTotal
+  if (this.cash < 0) {
+    // If cash is negative, use that as totalMoneyIn
+    this.totalMoneyIn = this.cash
+    this.totalMoneyOut = Math.abs(this.cash) + expensesTotal
+  } else {
+    // Otherwise use game finances total
+    this.totalMoneyIn = gameFinancesTotal
+    this.totalMoneyOut = expensesTotal
+  }
 
   // Calculate daily profit
   this.dailyProfit = this.totalMoneyIn - this.totalMoneyOut

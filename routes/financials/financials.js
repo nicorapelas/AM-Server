@@ -38,29 +38,21 @@ router.post('/create-financial', requireAuth, async (req, res) => {
     // Calculate daily profit
     const dailyProfit = gameFinancesTotal - totalExpenses
 
-    // Find the most recent financial entry for this store
-    const previousFinancial = await Financial.findOne({ storeId })
-      .sort({ date: -1 })
-      .select('cash')
-
-    // Calculate cash amount based on previous entry
-    const previousCash = previousFinancial ? previousFinancial.cash : 0
-    const cash = previousCash + dailyProfit
-
     const newFinancial = new Financial({
       _user: req.user._id,
       storeId,
       date: new Date(date),
       gameFinances: formattedGameFinances,
       expenses: formattedExpenses,
-      totalMoneyIn: gameFinancesTotal > 0 ? gameFinancesTotal : 0,
+      totalMoneyIn: actualCashCount,
       totalMoneyOut: gameFinancesTotal < 0 ? Math.abs(gameFinancesTotal) : 0,
       dailyProfit,
-      cash,
+      cash: actualCashCount < 0 ? 0 : actualCashCount,
       actualCashCount,
       notes,
       createdBy,
     })
+    console.log('newFinancial', newFinancial)
     await newFinancial.save()
     const financials = await Financial.find({ storeId })
     res.json(financials)
@@ -74,10 +66,8 @@ router.get('/user-financials', requireAuth, async (req, res) => {
   res.json(financials)
 })
 
-router.patch('/edit-financial', requireAuth, async (req, res) => {
-  console.log(`@ edit-financial`);
-  console.log('Request body:', req.body);
-  
+router.patch('/edit-financial', requireAuth, async (req, res) => {  
+  console.log('req.body', req.body)
   try {
     const {
       _id,
@@ -85,7 +75,6 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
       storeId,
       gameFinances,
       expenses,
-      gameFinancesTotal,
       totalExpenses,
       moneyBalance,
       notes,
@@ -95,8 +84,6 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
 
     // Find the financial record to update
     const financialToUpdate = await Financial.findById(_id)
-    console.log('financialToUpdate before:', financialToUpdate)
-    console.log('actualCashCount from request:', actualCashCount)
     
     if (!financialToUpdate) {
       console.log('Financial record not found')
@@ -121,23 +108,21 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
       storeId,
       gameFinances,
       expenses,
-      totalMoneyIn: gameFinancesTotal,
+      totalMoneyIn: actualCashCount,
       totalMoneyOut: totalExpenses,
       dailyProfit: moneyBalance,
-      cash,
+      cash: actualCashCount < 0 ? 0 : actualCashCount,
       actualCashCount,
       notes,
       updatedBy,
       updatedAt: Date.now(),
     }
-    console.log('Update data:', updateData)
 
     const updatedFinancial = await Financial.findByIdAndUpdate(
       _id,
       updateData,
       { new: true, runValidators: true }
     )
-    console.log('updatedFinancial after:', updatedFinancial)
 
     // Update all subsequent financial records' cash amounts
     const subsequentFinancials = await Financial.find({

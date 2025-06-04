@@ -15,11 +15,11 @@ const app = express()
 app.use(cookieParser())
 
 // Request logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+//   console.log('Headers:', req.headers);
+//   next();
+// });
 
 require('./startup/routes')(app)
 require('./startup/db')()

@@ -2,12 +2,53 @@ const express = require('express')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
 const passport = require('passport')
+const path = require('path')
+const nodemailer = require('nodemailer')
+const hbs = require('nodemailer-express-handlebars')
 const User = mongoose.model('User')
 const keys = require('../../config/keys').keys
 const requireAuth = require('../../middlewares/requireAuth')
+const validateRegisterInput = require('../../validation/register')
 
 const router = express.Router()
 
+// Nodemailer Handlebars
+const handlebarOptions = {
+  viewEngine: {
+    extName: '.handlebars',
+    partialsDir: path.resolve('./templates/mailTemplates'),
+    defaultLayout: false,
+  },
+  viewPath: path.resolve('./templates/mailTemplates'),
+  extName: '.handlebars',
+}
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: keys.google.authenticateUser,
+    pass: keys.google.authenticatePassword,
+  },
+})
+transporter.use('compile', hbs(handlebarOptions))
+// Register mailer options
+mailManRegister = (email, id) => {
+  const mailOptionsRegister = {
+    from: 'nicorapelas@cvcloud.com',
+    to: email,
+    subject: 'CV Cloud - User authentication',
+    template: 'verifyEmailTemplate',
+    context: {
+      id,
+    },
+  }
+  transporter.sendMail(mailOptionsRegister, (error, info) => {
+    if (error) {
+      console.log(error)
+    } else {
+      console.log('Email sent: ' + info.response)
+    }
+  })
+}
 // Forgot password mailer options
 mailManForgotPassword = (email, token) => {
   const mailOptionsForgotPassword = {
@@ -27,6 +68,26 @@ mailManForgotPassword = (email, token) => {
     }
   })
 }
+
+// // Forgot password mailer options
+// mailManForgotPassword = (email, token) => {
+//   const mailOptionsForgotPassword = {
+//     from: 'nicorapelas@cvcloud.com',
+//     to: email,
+//     subject: 'CV Cloud - User authentication',
+//     template: 'resetPasswordTemplate',
+//     context: {
+//       token,
+//     },
+//   }
+//   transporter.sendMail(mailOptionsForgotPassword, (error, info) => {
+//     if (error) {
+//       console.log(error)
+//     } else {
+//       console.log('Email sent: ' + info.response)
+//     }
+//   })
+// }
 
 // @route  POST /auth/user/fetch-user
 // @desc   Fetch current user
@@ -50,27 +111,66 @@ router.get('/fetch-user', requireAuth, (req, res) => {
 // @route  POST /auth/user/register
 // @desc   Register a user and respond with JWT
 // @access public
+// router.post('/register', async (req, res) => {
+//   // Validation check
+//   // Check if User exists
+//   const userCheck = await User.findOne({ email: req.body.email })
+//   console.log(`userCheck`, userCheck)
+//   if (userCheck) {
+//     errors.email = 'Email already in use'
+//     res.json({ error: errors })
+//     return
+//   }
+//   const { email, password } = req.body
+//   try {
+//     // Create user
+//     const newUser = new User({
+//       username: email,
+//       email,
+//       password,
+//       bossCreds: true,
+//       created: Date.now(),
+//     })
+//     // Send verification email
+//     await newUser.save()
+//     return res.send({
+//       success: `An 'email verification' email has been sent to you. Please open the email and follow the provided instructions.`,
+//     })
+//   } catch (err) {
+//     return res.send(err.message)
+//   }
+// })
+
+// @route  POST /auth/user/register
+// @desc   Register a user and respond with JWT
+// @access public
 router.post('/register', async (req, res) => {
   // Validation check
+  const { errors, isValid } = validateRegisterInput(req.body)
+  if (!isValid) {
+    res.json({ error: errors })
+    return
+  }
   // Check if User exists
   const userCheck = await User.findOne({ email: req.body.email })
-  console.log(`userCheck`, userCheck)
   if (userCheck) {
     errors.email = 'Email already in use'
     res.json({ error: errors })
     return
   }
-  const { email, password } = req.body
+  const { email, password, affiliatceIntroCode } = req.body
   try {
-    // Create user
     const newUser = new User({
       username: email,
       email,
       password,
-      bossCreds: true,
+      affiliatceIntroCode,
+      localId: true,
+      recipients: { email },
       created: Date.now(),
     })
     // Send verification email
+    mailManRegister(email, newUser._id)
     await newUser.save()
     return res.send({
       success: `An 'email verification' email has been sent to you. Please open the email and follow the provided instructions.`,
@@ -84,14 +184,11 @@ router.post('/register', async (req, res) => {
 // @desc   Login a user and respond with JWT
 // @access public
 router.post('/login', async (req, res) => {
-  console.log(`@ Login route:`, req.body)
-
   // Validation check
   const errors = {}
   const { email, password } = req.body
   // Check if user with email registered
   const user = await User.findOne({ email })
-  console.log('user before login', user)
   if (!user) {
     errors.email = 'Invalid username or password'
     res.json({ error: errors })
@@ -105,10 +202,8 @@ router.post('/login', async (req, res) => {
     return
   }
   try {
-    console.log('user before comparePassword', user)
     await user.comparePassword(password)
     const token = jwt.sign({ userId: user._id }, keys.JWT.secret)
-    console.log('token', token)
     res.json({ token })
   } catch (err) {
     errors.password = 'Invalid username or password'
