@@ -9,6 +9,7 @@ const staff = require('../routes/staff/staff')
 const user = require('../routes/auth/local')
 // Import payment routes
 // const yoco = require('../routes/payment/yoco')
+const paypal = require('../routes/payment/paypal')
 
 module.exports = (app) => {
   // Express middleware
@@ -57,4 +58,5 @@ module.exports = (app) => {
   app.use('/auth/user', user)
   // Use payment routes
   // app.use('/payment', yoco)
+  app.use('/payment/paypal', paypal)
 }

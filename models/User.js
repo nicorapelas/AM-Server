@@ -12,9 +12,18 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
   },
+  name: {
+    type: String,
+  },
   emailVerified: {
     type: Boolean,
-    default: true,
+    default: false,
+  },
+  emailUpdatePin: {
+    type: String,
+  },
+  emailUpdatePinExpires: {
+    type: Date,
   },
   resetPasswordToken: {
     type: String,

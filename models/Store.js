@@ -32,6 +32,32 @@ const StoreSchema = new Schema({
     type: Boolean,
     default: true,
   },
+  subscriptionId: {
+    type: String,
+    trim: true,
+  },
+  // Payment status tracking
+  paymentStatus: {
+    type: String,
+    enum: ['ACTIVE', 'FAILED', 'SUSPENDED', 'CANCELLED', 'PENDING'],
+    default: 'PENDING'
+  },
+  lastPaymentDate: {
+    type: Date,
+  },
+  nextPaymentDate: {
+    type: Date,
+  },
+  paymentFailureCount: {
+    type: Number,
+    default: 0
+  },
+  lastPaymentFailure: {
+    type: Date,
+  },
+  paymentFailureReason: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -41,6 +67,14 @@ const StoreSchema = new Schema({
   },
   password: {
     type: String,
+  },
+  tier: {
+    type: String,
+    default: 'free-tier',
+  },
+  tierAnchorDate: {
+    type: Date,
+    default: Date.now,
   },
   updatedAt: {
     type: Date,

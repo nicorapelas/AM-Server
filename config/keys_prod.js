@@ -24,6 +24,14 @@ const keys = {
     frontendUrl: process.env.FRONTEND_URL,
     backendUrl: process.env.BACKEND_URL,
   },
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID,
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET,
+    productId: process.env.PAYPAL_PRODUCT_ID, // Will be created automatically
+    planId: process.env.PAYPAL_PLAN_ID, // Will be created automatically
+    frontendUrl: process.env.FRONTEND_URL,
+    baseUrl: 'https://api-m.paypal.com', // Live URL
+  },
   managment: {
     id: process.env.MANAGMENT_ID,
   },
