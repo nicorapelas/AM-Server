@@ -30,8 +30,8 @@ const handlebarOptions = {
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: keys.google.authenticateUser,
-    pass: keys.google.authenticatePassword,
+    user: keys.google?.authenticateUser || process.env.GOOGLE_AUTH_USER,
+    pass: keys.google?.authenticatePassword || process.env.GOOGLE_AUTH_PASSWORD,
   },
   headers: {
     'X-Entity-Ref-ID': 'arcademanager',
