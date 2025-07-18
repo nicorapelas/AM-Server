@@ -94,6 +94,14 @@ const StaffSchema = new Schema({
   loan: {
     type: LoanSchema,
   },
+  editFinancialEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  deleteFinancialEnabled: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

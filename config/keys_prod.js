@@ -35,6 +35,20 @@ const keys = {
   managment: {
     id: process.env.MANAGMENT_ID,
   },
+  google: {
+    shareCvUser: process.env.GOOGLE_SHARE_CV_USER,
+    shareCvPassword: process.env.GOOGLE_SHARE_CV_PASSWORD,
+    authenticateUser: process.env.GOOGLE_AUTHENTICATE_USER,
+    authenticatePassword: process.env.GOOGLE_AUTHENTICATE_PASSWORD,
+  },
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID,
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET,
+    productId: process.env.PAYPAL_PRODUCT_ID,
+    planId: process.env.PAYPAL_PLAN_ID,
+    frontendUrl: process.env.FRONTEND_URL,
+    baseUrl: process.env.PAYPAL_BASE_URL,
+  },
   latestAppVersion: {
     v: process.env.LATEST_APP_VERSION,
   },

@@ -5,8 +5,8 @@ const requireAuth = require('../../middlewares/requireAuth')
 const router = express.Router()
 
 router.post('/create-staff', requireAuth, async (req, res) => {
-  const { storeId, firstName, lastName, email, phone, position, startDate, paymentTerms, paymentMethod, paymentValue, username, pin } = req.body
-  const staff = new Staff({ _user: req.user._id, storeId, firstName, lastName, email, phone, position, startDate, paymentTerms, paymentMethod, paymentValue, username, pin })
+  const { storeId, firstName, lastName, email, phone, position, startDate, paymentTerms, paymentMethod, paymentValue, username, pin, editFinancialEnabled, deleteFinancialEnabled } = req.body
+  const staff = new Staff({ _user: req.user._id, storeId, firstName, lastName, email, phone, position, startDate, paymentTerms, paymentMethod, paymentValue, username, pin, editFinancialEnabled, deleteFinancialEnabled })
   await staff.save()
   const staffs = await Staff.find({ storeId })
   res.json(staffs)

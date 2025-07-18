@@ -1,5 +1,6 @@
 require('./models/User')
 require('./models/Payment')
+require('./models/PaymentHistory')
 require('./models/Store')
 require('./models/Game')
 require('./models/Financial')

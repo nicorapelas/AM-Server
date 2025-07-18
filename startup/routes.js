@@ -10,6 +10,7 @@ const user = require('../routes/auth/local')
 // Import payment routes
 // const yoco = require('../routes/payment/yoco')
 const paypal = require('../routes/payment/paypal')
+const paymentHistory = require('../routes/payment/paymentHistory')
 
 module.exports = (app) => {
   // Express middleware
@@ -59,4 +60,5 @@ module.exports = (app) => {
   // Use payment routes
   // app.use('/payment', yoco)
   app.use('/payment/paypal', paypal)
+  app.use('/payment', paymentHistory)
 }

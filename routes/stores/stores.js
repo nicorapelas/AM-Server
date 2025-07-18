@@ -76,6 +76,28 @@ router.post('/create-store', requireAuth, async (req, res) => {
     newStore.staffUserId = staffUser._id
     await newStore.save()
 
+    // Create PaymentHistory record for free tier store creation
+    const PaymentHistory = mongoose.model('PaymentHistory')
+    const freeTierPaymentRecord = new PaymentHistory({
+      _user: req.user._id,
+      _store: newStore._id,
+      subscriptionId: 'free-tier',
+      paymentId: `free_tier_store_${Date.now()}`,
+      amount: 0.00,
+      currency: 'USD',
+      status: 'SUCCESS',
+      paymentMethod: 'Free Tier',
+      billingCycle: 'N/A',
+      metadata: {
+        storeCreated: true,
+        tier: 'free-tier',
+        initialSetup: true
+      },
+      processedAt: new Date()
+    })
+    await freeTierPaymentRecord.save()
+    console.log('PaymentHistory: Created free tier payment record for store:', newStore.storeName)
+
     // Get updated stores list
     const stores = await Store.find({ _user: req.user._id })
     
