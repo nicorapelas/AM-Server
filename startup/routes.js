@@ -5,6 +5,7 @@ const stores = require('../routes/stores/stores')
 const games = require('../routes/games/games')
 const financials = require('../routes/financials/financials')
 const staff = require('../routes/staff/staff')
+const support = require('../routes/support/support')
 // Import authentication routes
 const user = require('../routes/auth/local')
 // Import payment routes
@@ -55,6 +56,7 @@ module.exports = (app) => {
   app.use('/games', games)
   app.use('/financials', financials)
   app.use('/staff', staff)
+  app.use('/support', support)
   // Use authentication routes
   app.use('/auth/user', user)
   // Use payment routes

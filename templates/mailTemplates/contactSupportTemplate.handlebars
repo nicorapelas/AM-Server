@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade Manager - Support Request</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #bf0d3e;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #041e42;
+            margin: 0;
+            font-size: 24px;
+        }
+        .support-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #041e42;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .field-value {
+            color: #333;
+            padding: 8px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .priority-high {
+            background-color: #ffe6e6;
+            border-color: #ff9999;
+        }
+        .priority-urgent {
+            background-color: #ffcccc;
+            border-color: #ff6666;
+        }
+        .priority-medium {
+            background-color: #fff2e6;
+            border-color: #ffcc99;
+        }
+        .priority-low {
+            background-color: #e6f3ff;
+            border-color: #99ccff;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 12px;
+        }
+        .timestamp {
+            text-align: right;
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Arcade Manager Support Request</h1>
+        </div>
+
+        <div class="timestamp">
+            Received: {{timestamp}}
+        </div>
+
+        <div class="support-info">
+            <div class="field">
+                <span class="field-label">Request Type:</span>
+                <div class="field-value">
+                    {{#if isSupportRequest}}
+                        🆘 Support Request
+                    {{else}}
+                        💡 Feature Suggestion
+                    {{/if}}
+                </div>
+            </div>
+
+            <div class="field">
+                <span class="field-label">From:</span>
+                <div class="field-value">{{name}} ({{email}})</div>
+            </div>
+
+            {{#if isSupportRequest}}
+                <div class="field">
+                    <span class="field-label">Category:</span>
+                    <div class="field-value">{{category}}</div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Priority:</span>
+                    <div class="field-value priority-{{priority}}">{{priority}}</div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Subject:</span>
+                    <div class="field-value">{{subject}}</div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Message:</span>
+                    <div class="field-value">{{message}}</div>
+                </div>
+            {{else}}
+                <div class="field">
+                    <span class="field-label">Feature Name:</span>
+                    <div class="field-value">{{featureName}}</div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Impact Level:</span>
+                    <div class="field-value priority-{{impact}}">{{impact}}</div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Feature Description:</span>
+                    <div class="field-value">{{featureDescription}}</div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Use Case:</span>
+                    <div class="field-value">{{useCase}}</div>
+                </div>
+            {{/if}}
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from the Arcade Manager support system.</p>
+            <p>Please respond to the user at: <strong>{{email}}</strong></p>
+        </div>
+    </div>
+</body>
+</html>
