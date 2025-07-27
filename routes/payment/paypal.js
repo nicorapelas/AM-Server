@@ -115,7 +115,7 @@ router.post('/create-product', requireAuth, async (req, res) => {
       type: 'SERVICE',
       category: 'SOFTWARE',
       image_url: 'https://example.com/logo.png', // Optional
-      home_url: FRONTEND_URL || 'https://arcademanager.app'
+      home_url: 'https://arcademanager.app'
     }
 
     const response = await axios.post(
