@@ -27,10 +27,13 @@ const keys = {
   paypal: {
     clientId: process.env.PAYPAL_CLIENT_ID,
     clientSecret: process.env.PAYPAL_CLIENT_SECRET,
-    productId: process.env.PAYPAL_PRODUCT_ID, // Will be created automatically
-    planId: process.env.PAYPAL_PLAN_ID, // Will be created automatically
+    productId: process.env.PAYPAL_PRODUCT_ID,
+    planId: process.env.PAYPAL_PLAN_ID,
     frontendUrl: process.env.FRONTEND_URL,
-    baseUrl: 'https://api-m.paypal.com', // Live URL
+    baseUrl: process.env.PAYPAL_BASE_URL,
+    mode: process.env.PAYPAL_MODE || 'live',
+    productName: process.env.PAYPAL_PRODUCT_NAME,
+    brandName: process.env.PAYPAL_BRAND_NAME,
   },
   managment: {
     id: process.env.MANAGMENT_ID,
@@ -40,14 +43,6 @@ const keys = {
     shareCvPassword: process.env.GOOGLE_SHARE_CV_PASSWORD,
     authenticateUser: process.env.GOOGLE_AUTHENTICATE_USER,
     authenticatePassword: process.env.GOOGLE_AUTHENTICATE_PASSWORD,
-  },
-  paypal: {
-    clientId: process.env.PAYPAL_CLIENT_ID,
-    clientSecret: process.env.PAYPAL_CLIENT_SECRET,
-    productId: process.env.PAYPAL_PRODUCT_ID,
-    planId: process.env.PAYPAL_PLAN_ID,
-    frontendUrl: process.env.FRONTEND_URL,
-    baseUrl: process.env.PAYPAL_BASE_URL,
   },
   latestAppVersion: {
     v: process.env.LATEST_APP_VERSION,

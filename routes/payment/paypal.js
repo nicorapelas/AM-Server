@@ -15,6 +15,8 @@ const PAYPAL_CLIENT_ID = keys.paypal.clientId
 const PAYPAL_CLIENT_SECRET = keys.paypal.clientSecret
 const PAYPAL_BASE_URL = keys.paypal.baseUrl
 const FRONTEND_URL = keys.paypal.frontendUrl
+const PAYPAL_PRODUCT_NAME = keys.paypal.productName
+const PAYPAL_BRAND_NAME = keys.paypal.brandName
 
 // Nodemailer Handlebars
 const handlebarOptions = {
@@ -108,7 +110,7 @@ router.post('/create-product', requireAuth, async (req, res) => {
     const accessToken = await getPayPalAccessToken()
     
     const productData = {
-      name: 'High Score Hero Store Subscription',
+      name: PAYPAL_PRODUCT_NAME,
       description: 'Monthly subscription for additional arcade stores',
       type: 'SERVICE',
       category: 'SOFTWARE',
@@ -146,7 +148,7 @@ router.post('/create-plan', requireAuth, async (req, res) => {
       const productResponse = await axios.post(
         `${PAYPAL_BASE_URL}/v1/catalogs/products`,
         {
-          name: 'High Score Hero Store Subscription',
+          name: PAYPAL_PRODUCT_NAME,
           description: 'Monthly subscription for additional arcade stores',
           type: 'SERVICE',
           category: 'SOFTWARE'
@@ -163,7 +165,7 @@ router.post('/create-plan', requireAuth, async (req, res) => {
     
     const planData = {
       product_id: productId,
-      name: 'High Score Hero Store Subscription',
+      name: PAYPAL_PRODUCT_NAME,
       description: 'Monthly subscription for additional arcade stores',
       status: 'ACTIVE',
       billing_cycles: [
@@ -239,7 +241,7 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
         `${PAYPAL_BASE_URL}/v1/billing/plans`,
         {
           product_id: keys.paypal.productId || await createProduct(accessToken),
-          name: 'High Score Hero Store Subscription',
+          name: PAYPAL_PRODUCT_NAME,
           description: 'Monthly subscription for additional arcade stores',
           status: 'ACTIVE',
           billing_cycles: [
@@ -290,7 +292,7 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
         email_address: req.user.email
       },
       application_context: {
-        brand_name: 'High Score Hero',
+        brand_name: PAYPAL_BRAND_NAME,
         locale: 'en-US',
         shipping_preference: 'NO_SHIPPING',
         user_action: 'SUBSCRIBE_NOW',
@@ -364,7 +366,7 @@ const createProduct = async (accessToken) => {
   const productResponse = await axios.post(
     `${PAYPAL_BASE_URL}/v1/catalogs/products`,
     {
-      name: 'High Score Hero Store Subscription',
+      name: PAYPAL_PRODUCT_NAME,
       description: 'Monthly subscription for additional arcade stores',
       type: 'SERVICE',
       category: 'SOFTWARE'
