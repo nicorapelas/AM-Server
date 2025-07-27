@@ -18,6 +18,12 @@ const FRONTEND_URL = keys.paypal.frontendUrl
 const PAYPAL_PRODUCT_NAME = keys.paypal.productName
 const PAYPAL_BRAND_NAME = keys.paypal.brandName
 
+// Helper function to ensure consistent URL formatting
+const getPayPalUrl = (endpoint) => {
+  const baseUrl = PAYPAL_BASE_URL.replace(/\/$/, '') // Remove trailing slash
+  return `${baseUrl}/${endpoint.replace(/^\//, '')}` // Remove leading slash from endpoint
+}
+
 // Nodemailer Handlebars
 const handlebarOptions = {
   viewEngine: {
@@ -88,7 +94,7 @@ mailManBillingSuccessfullSubscription = (email, id) => {
 const getPayPalAccessToken = async () => {
   try {
     const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64')
-    const response = await axios.post(`${PAYPAL_BASE_URL}/v1/oauth2/token`, 
+    const response = await axios.post(getPayPalUrl('v1/oauth2/token'), 
       'grant_type=client_credentials',
       {
         headers: {
@@ -119,7 +125,7 @@ router.post('/create-product', requireAuth, async (req, res) => {
     }
 
     const response = await axios.post(
-      `${PAYPAL_BASE_URL}/v1/catalogs/products`,
+      getPayPalUrl('v1/catalogs/products'),
       productData,
       {
         headers: {
@@ -146,7 +152,7 @@ router.post('/create-plan', requireAuth, async (req, res) => {
     
     if (!productId) {
       const productResponse = await axios.post(
-        `${PAYPAL_BASE_URL}/v1/catalogs/products`,
+        getPayPalUrl('v1/catalogs/products'),
         {
           name: PAYPAL_PRODUCT_NAME,
           description: 'Monthly subscription for additional arcade stores',
@@ -197,7 +203,7 @@ router.post('/create-plan', requireAuth, async (req, res) => {
     }
 
     const response = await axios.post(
-      `${PAYPAL_BASE_URL}/v1/billing/plans`,
+      getPayPalUrl('v1/billing/plans'),
       planData,
       {
         headers: {
@@ -238,7 +244,7 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
       console.log('⚠️ No plan ID found, creating plan automatically')
       // Create a plan automatically
       const planResponse = await axios.post(
-        `${PAYPAL_BASE_URL}/v1/billing/plans`,
+        getPayPalUrl('v1/billing/plans'),
         {
           product_id: keys.paypal.productId || await createProduct(accessToken),
           name: PAYPAL_PRODUCT_NAME,
@@ -314,7 +320,7 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
     })
 
     const response = await axios.post(
-      `${PAYPAL_BASE_URL}/v1/billing/subscriptions`,
+      getPayPalUrl('v1/billing/subscriptions'),
       subscriptionData,
       {
         headers: {
@@ -364,7 +370,7 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
 // Helper function to create a product
 const createProduct = async (accessToken) => {
   const productResponse = await axios.post(
-    `${PAYPAL_BASE_URL}/v1/catalogs/products`,
+    getPayPalUrl('v1/catalogs/products'),
     {
       name: PAYPAL_PRODUCT_NAME,
       description: 'Monthly subscription for additional arcade stores',
@@ -394,7 +400,7 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
     console.log('PayPal Access Token obtained:', !!accessToken)
 
     const response = await axios.get(
-      `${PAYPAL_BASE_URL}/v1/billing/subscriptions/${subscriptionId}`,
+      getPayPalUrl(`v1/billing/subscriptions/${subscriptionId}`),
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -644,7 +650,7 @@ router.post('/activate-subscription', requireAuth, async (req, res) => {
     const accessToken = await getPayPalAccessToken()
     
     const response = await axios.get(
-      `${PAYPAL_BASE_URL}/v1/billing/subscriptions/${subscriptionId}`,
+      getPayPalUrl(`v1/billing/subscriptions/${subscriptionId}`),
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -681,7 +687,7 @@ router.get('/subscription/:subscriptionId', requireAuth, async (req, res) => {
     const accessToken = await getPayPalAccessToken()
 
     const response = await axios.get(
-      `${PAYPAL_BASE_URL}/v1/billing/subscriptions/${subscriptionId}`,
+      getPayPalUrl(`v1/billing/subscriptions/${subscriptionId}`),
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -704,7 +710,7 @@ router.post('/cancel-subscription', requireAuth, async (req, res) => {
     const accessToken = await getPayPalAccessToken()
 
     const response = await axios.post(
-      `${PAYPAL_BASE_URL}/v1/billing/subscriptions/${subscriptionId}/cancel`,
+      getPayPalUrl(`v1/billing/subscriptions/${subscriptionId}/cancel`),
       { reason: reason || 'User requested cancellation' },
       {
         headers: {
@@ -1073,7 +1079,7 @@ router.get('/test', requireAuth, async (req, res) => {
   try {
     console.log('Testing PayPal credentials...')
     console.log('Client ID:', PAYPAL_CLIENT_ID)
-    console.log('Base URL:', PAYPAL_BASE_URL)
+    console.log('Base URL:', getPayPalUrl(''))
     
     const accessToken = await getPayPalAccessToken()
     console.log('Successfully got access token:', accessToken ? 'YES' : 'NO')
