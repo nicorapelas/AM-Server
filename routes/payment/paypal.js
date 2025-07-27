@@ -230,6 +230,7 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
     const { storeName, storeData } = req.body
     console.log('=== PAYPAL SUBSCRIPTION CREATION ===')
     console.log('User:', req.user.email)
+    console.log('User Name:', req.user.name)
     console.log('Store Name:', storeName)
     console.log('Store Data:', storeData)
     
@@ -318,6 +319,8 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
       returnUrl: subscriptionData.application_context.return_url,
       cancelUrl: subscriptionData.application_context.cancel_url
     })
+
+    console.log('🔍 Full subscription data being sent to PayPal:', JSON.stringify(subscriptionData, null, 2))
 
     const response = await axios.post(
       getPayPalUrl('v1/billing/subscriptions'),
