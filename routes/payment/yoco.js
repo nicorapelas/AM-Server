@@ -134,11 +134,6 @@ router.post('/webhook', async (req, res) => {
             .exec()
 
           if (cards.length < cardCount) {
-            console.log(cards.length)
-            console.log(cardCount)
-            console.warn(
-              `Insufficient cards available. Requested: ${cardCount}, Found: ${cards.length}`
-            )
             await CardOwed.create({
               owedTo: payment._user,
               numberOfCards: cardCount,

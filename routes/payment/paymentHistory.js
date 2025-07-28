@@ -8,30 +8,25 @@ const router = express.Router()
 
 // Get payment history for a user (all stores)
 router.get('/user-payment-history', requireAuth, async (req, res) => {
-  console.log('PaymentHistory: GET /user-payment-history called for user:', req.user._id)
   try {
+    const PaymentHistory = mongoose.model('PaymentHistory')
     const paymentHistory = await PaymentHistory.find({ _user: req.user._id })
-      .populate('_store', 'storeName tierAnchorDate')
       .sort({ processedAt: -1 })
       .limit(50)
 
-    console.log('PaymentHistory: Found payment history records:', paymentHistory.length)
     res.json(paymentHistory)
   } catch (error) {
-    console.error('PaymentHistory: Error fetching user payment history:', error)
-    res.status(500).json({ error: 'Failed to fetch payment history' })
+    res.status(500).json({ error: 'Error fetching payment history' })
   }
 })
 
 // Get payment history for a specific store
 router.get('/store-payment-history/:storeId', requireAuth, async (req, res) => {
   const { storeId } = req.params
-  console.log('PaymentHistory: GET /store-payment-history called for store:', storeId, 'user:', req.user._id)
   try {
     // Verify user owns this store
     const store = await Store.findOne({ _id: storeId, _user: req.user._id })
     if (!store) {
-      console.log('PaymentHistory: Store not found or user does not own it')
       return res.status(404).json({ error: 'Store not found' })
     }
 
@@ -40,20 +35,16 @@ router.get('/store-payment-history/:storeId', requireAuth, async (req, res) => {
       .sort({ processedAt: -1 })
       .limit(50)
 
-    console.log('PaymentHistory: Found store payment history records:', paymentHistory.length)
     res.json(paymentHistory)
   } catch (error) {
-    console.error('PaymentHistory: Error fetching store payment history:', error)
     res.status(500).json({ error: 'Failed to fetch payment history' })
   }
 })
 
 // Get payment summary for a user
 router.get('/payment-summary', requireAuth, async (req, res) => {
-  console.log('PaymentHistory: GET /payment-summary called for user:', req.user._id)
   try {
     const stores = await Store.find({ _user: req.user._id })
-    console.log('PaymentHistory: Found stores for user:', stores.length)
     
     const activeStores = stores.filter(s => s.paymentStatus === 'ACTIVE')
     const failedStores = stores.filter(s => s.paymentStatus === 'FAILED')
@@ -118,10 +109,8 @@ router.get('/payment-summary', requireAuth, async (req, res) => {
       }
     }
 
-    console.log('PaymentHistory: Payment summary:', summary)
     res.json(summary)
   } catch (error) {
-    console.error('PaymentHistory: Error fetching payment summary:', error)
     res.status(500).json({ error: 'Failed to fetch payment summary' })
   }
 })
@@ -136,7 +125,6 @@ router.get('/recent-payments', requireAuth, async (req, res) => {
 
     res.json(recentPayments)
   } catch (error) {
-    console.error('Error fetching recent payments:', error)
     res.status(500).json({ error: 'Failed to fetch recent payments' })
   }
 })

@@ -96,7 +96,6 @@ router.post('/create-store', requireAuth, async (req, res) => {
       processedAt: new Date()
     })
     await freeTierPaymentRecord.save()
-    console.log('PaymentHistory: Created free tier payment record for store:', newStore.storeName)
 
     // Get updated stores list
     const stores = await Store.find({ _user: req.user._id })
@@ -110,7 +109,6 @@ router.post('/create-store', requireAuth, async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Error creating store:', error)
     res.status(422).send({ error: 'Error creating store and staff account' })
   }
 })
@@ -122,7 +120,6 @@ router.get('/user-stores', requireAuth, async (req, res) => {
 
 router.post('/edit-store', requireAuth, async (req, res) => {
   try {
-    console.log('req.body @edit-store', req.body)
     const { _id, storeName, address, notes } = req.body
     
     // Check if store name is unique for this user (excluding the current store being edited)
@@ -146,7 +143,6 @@ router.post('/edit-store', requireAuth, async (req, res) => {
     const stores = await Store.find({ _user: req.user._id })
     res.json(stores)
   } catch (error) {
-    console.error('Error editing store:', error)
     res.status(422).send({ error: 'Error updating store' })
   }
 })
@@ -251,7 +247,6 @@ router.post('/delete-store', requireAuth, async (req, res) => {
       paypalCancellation: paypalCancellationResult
     })
   } catch (error) {
-    console.error('Error deleting store:', error)
     res.status(500).json({ error: 'Error deleting store' })
   }
 })

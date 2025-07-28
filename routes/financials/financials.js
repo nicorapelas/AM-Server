@@ -52,7 +52,6 @@ router.post('/create-financial', requireAuth, async (req, res) => {
       notes,
       createdBy,
     })
-    console.log('newFinancial', newFinancial)
     await newFinancial.save()
     const financials = await Financial.find({ storeId })
     res.json(financials)
@@ -67,7 +66,6 @@ router.get('/user-financials', requireAuth, async (req, res) => {
 })
 
 router.patch('/edit-financial', requireAuth, async (req, res) => {  
-  console.log('req.body', req.body)
   try {
     const {
       _id,
@@ -86,7 +84,6 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
     const financialToUpdate = await Financial.findById(_id)
     
     if (!financialToUpdate) {
-      console.log('Financial record not found')
       return res.status(404).json({ error: 'Financial record not found' })
     }
 
@@ -143,7 +140,6 @@ router.patch('/edit-financial', requireAuth, async (req, res) => {
 
     res.json(financials)
   } catch (err) {
-    console.error('Error in edit-financial:', err)
     res.status(500).json({ error: 'Error updating financial record' })
   }
 })

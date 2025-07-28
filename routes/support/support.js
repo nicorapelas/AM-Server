@@ -64,7 +64,7 @@ const sendSupportEmail = (supportData) => {
     if (error) {
       console.error('Error sending support email:', error)
     } else {
-      console.log('Support email sent: ' + info.response)
+      // Support email sent successfully
     }
   })
 }

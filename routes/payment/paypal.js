@@ -228,100 +228,56 @@ router.post('/create-plan', requireAuth, async (req, res) => {
 router.post('/create-subscription', requireAuth, async (req, res) => {
   try {
     const { storeName, storeData } = req.body
-    console.log('=== PAYPAL SUBSCRIPTION CREATION ===')
-    console.log('User:', req.user.email)
-    console.log('User Name:', req.user.name)
-    console.log('Store Name:', storeName)
-    console.log('Store Data:', storeData)
-    
-    const accessToken = await getPayPalAccessToken()
-    console.log('✅ PayPal Access Token obtained')
 
-    // First, ensure we have a plan
-    let planId = keys.paypal.planId
-    console.log('Current plan ID:', planId)
-    
-    if (!planId) {
-      console.log('⚠️ No plan ID found, creating plan automatically')
-      // Create a plan automatically
-      const planResponse = await axios.post(
-        getPayPalUrl('v1/billing/plans'),
-        {
-          product_id: keys.paypal.productId || await createProduct(accessToken),
-          name: PAYPAL_PRODUCT_NAME,
-          description: 'Monthly subscription for additional arcade stores',
-          status: 'ACTIVE',
-          billing_cycles: [
-            {
-              frequency: {
-                interval_unit: 'MONTH',
-                interval_count: 1
-              },
-              tenure_type: 'REGULAR',
-              sequence: 1,
-              total_cycles: 0,
-              pricing_scheme: {
-                fixed_price: {
-                  value: '7.00',
-                  currency_code: 'USD'
-                }
-              }
-            }
-          ],
-          payment_preferences: {
-            auto_bill_outstanding: true,
-            setup_fee: {
-              value: '0.00',
-              currency_code: 'USD'
-            },
-            setup_fee_failure_action: 'CONTINUE',
-            payment_failure_threshold: 3
-          }
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-      planId = planResponse.data.id
-      console.log('✅ Created plan with ID:', planId)
+    // Get PayPal access token
+    const accessToken = await getPayPalAccessToken()
+    if (!accessToken) {
+      return res.status(500).json({ error: 'Failed to get PayPal access token' })
     }
 
+    // Check if we already have a plan ID
+    let planId = keys.paypal.planId
+
+    if (!planId) {
+      // Create plan automatically
+      planId = await createPlan(accessToken)
+    }
+
+    // Generate staff credentials
+    const generateStaffCredentials = async (storeName) => {
+      const sanitizedStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      const randomSuffix = Math.random().toString(36).substring(2, 8)
+      const username = `${sanitizedStoreName}_staff_${randomSuffix}`
+      const password = Math.random().toString(36).substring(2, 12)
+      return { username, password }
+    }
+
+    const staffCreds = await generateStaffCredentials(storeName)
+
+    // Create subscription data
     const subscriptionData = {
       plan_id: planId,
-      start_time: new Date(Date.now() + 60000).toISOString(), // Start 1 minute from now
+      start_time: new Date().toISOString(),
       subscriber: {
         name: {
-          given_name: req.user.name
+          given_name: req.user.name || 'Arcade Manager User'
         },
         email_address: req.user.email
       },
       application_context: {
-        brand_name: PAYPAL_BRAND_NAME,
-        locale: 'en-US',
+        brand_name: keys.paypal.brandName || 'Arcade Manager',
         shipping_preference: 'NO_SHIPPING',
         user_action: 'SUBSCRIBE_NOW',
         payment_method: {
           payer_selected: 'PAYPAL',
           payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
         },
-        return_url: `${FRONTEND_URL}/billing/success`,
-        cancel_url: `${FRONTEND_URL}/billing/cancel`
+        return_url: `${keys.paypal.frontendUrl}/billing/success`,
+        cancel_url: `${keys.paypal.frontendUrl}/billing/cancel`
       }
     }
 
-    console.log('📝 Creating subscription with data:', {
-      planId: subscriptionData.plan_id,
-      startTime: subscriptionData.start_time,
-      subscriber: subscriptionData.subscriber,
-      returnUrl: subscriptionData.application_context.return_url,
-      cancelUrl: subscriptionData.application_context.cancel_url
-    })
-
-    console.log('🔍 Full subscription data being sent to PayPal:', JSON.stringify(subscriptionData, null, 2))
-
+    // Create subscription
     const response = await axios.post(
       getPayPalUrl('v1/billing/subscriptions'),
       subscriptionData,
@@ -333,40 +289,26 @@ router.post('/create-subscription', requireAuth, async (req, res) => {
       }
     )
 
-    const subscriptionId = response.data.id
-    const approvalUrl = response.data.links.find(link => link.rel === 'approve').href
+    const subscription = response.data
+    const subscriptionId = subscription.id
+    const approvalUrl = subscription.links.find(link => link.rel === 'approve')?.href
 
-    console.log('✅ Subscription created successfully')
-    console.log('Subscription ID:', subscriptionId)
-    console.log('Subscription Status:', response.data.status)
-    console.log('Approval URL:', approvalUrl)
-
-    // Store the subscription data temporarily (in production, you'd use a database)
-    // For now, we'll store it in memory (this will be lost on server restart)
-    if (!global.pendingSubscriptions) {
-      global.pendingSubscriptions = new Map()
-    }
-    
+    // Store pending subscription data
     global.pendingSubscriptions.set(subscriptionId, {
+      storeData,
       userId: req.user._id,
-      storeData: storeData || { storeName, address: '', notes: '' },
       createdAt: new Date()
     })
 
-    console.log('✅ Pending subscription data stored')
-    console.log('=== SUBSCRIPTION CREATION COMPLETE ===')
-
-    res.json({ 
-      success: true, 
-      subscription: response.data,
-      approvalUrl: approvalUrl,
-      subscriptionId: subscriptionId
+    res.json({
+      success: true,
+      subscriptionId,
+      approvalUrl,
+      status: subscription.status
     })
+
   } catch (error) {
-    console.error('❌ Error creating PayPal subscription:', error)
-    console.error('Error response:', error.response?.data)
-    console.error('Error status:', error.response?.status)
-    res.status(500).json({ success: false, error: error.message })
+    res.status(500).json({ error: error.message })
   }
 })
 
@@ -394,13 +336,8 @@ const createProduct = async (accessToken) => {
 router.post('/check-subscription-status', requireAuth, async (req, res) => {
   try {
     const { subscriptionId, tierSelected } = req.body
-    console.log('=== PAYPAL SUBSCRIPTION STATUS CHECK ===')
-    console.log('User:', req.user.email)
-    console.log('Subscription ID:', subscriptionId)
-    console.log('Tier Selected:', tierSelected)
     
     const accessToken = await getPayPalAccessToken()
-    console.log('PayPal Access Token obtained:', !!accessToken)
 
     const response = await axios.get(
       getPayPalUrl(`v1/billing/subscriptions/${subscriptionId}`),
@@ -413,25 +350,14 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
     )
 
     const subscription = response.data
-    console.log('PayPal Subscription Status:', subscription.status)
-    console.log('PayPal Subscription Details:', {
-      id: subscription.id,
-      status: subscription.status,
-      start_time: subscription.start_time,
-      billing_info: subscription.billing_info,
-      subscriber: subscription.subscriber
-    })
-
     // Handle different subscription statuses
     switch (subscription.status) {
       case 'ACTIVE':
-        console.log('✅ Subscription is ACTIVE - Proceeding with store creation')
         // Subscription is active - create the store automatically
         try {
           const pendingData = global.pendingSubscriptions?.get(subscriptionId)
           
           if (pendingData && pendingData.userId.toString() === req.user._id.toString()) {
-            console.log('✅ Found pending subscription data, creating store...')
             
             // Import the Store model
             const Store = mongoose.model('Store')
@@ -444,7 +370,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
             })
             
             if (existingStore) {
-              console.log('❌ Store name already exists:', pendingData.storeData.storeName)
               res.json({ 
                 success: true, 
                 subscription: subscription,
@@ -469,7 +394,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
             }
             
             const staffCreds = await generateStaffCredentials(pendingData.storeData.storeName)
-            console.log('✅ Generated staff credentials for store:', pendingData.storeData.storeName)
             
             // Create store
             const newStore = new Store({
@@ -480,11 +404,10 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
               username: staffCreds.username,
               password: staffCreds.password,
               paymentStatus: 'ACTIVE',
-              tier: 'PAID_HIGH_SCORE_HERO', // TODO: Change to tierSelected
+              tier: 'PAID_MONTHLY', // Updated to use standard tier naming
               subscriptionId: subscriptionId,
             })
             await newStore.save()
-            console.log('✅ Store created successfully:', newStore.storeName, 'Store ID:', newStore._id)
 
             // Create staff user
             const staffUser = new User({
@@ -496,7 +419,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
               staffStore: newStore._id
             })
             await staffUser.save()
-            console.log('✅ Staff user created:', staffCreds.username)
 
             // Update store with staffUserId
             newStore.staffUserId = staffUser._id
@@ -526,25 +448,9 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
               processedAt: new Date()
             })
             await initialPaymentRecord.save()
-            console.log('✅ PaymentHistory record created for subscription:', subscriptionId)
-            console.log('Payment Details:', {
-              amount: initialPaymentRecord.amount,
-              currency: initialPaymentRecord.currency,
-              status: initialPaymentRecord.status,
-              paymentMethod: initialPaymentRecord.paymentMethod,
-              processedAt: initialPaymentRecord.processedAt
-            })
 
             // Clean up pending subscription data
             global.pendingSubscriptions.delete(subscriptionId)
-            console.log('✅ Pending subscription data cleaned up')
-            
-            console.log('=== STORE CREATION COMPLETE ===')
-            console.log('Store Name:', newStore.storeName)
-            console.log('Store ID:', newStore._id)
-            console.log('Subscription ID:', subscriptionId)
-            console.log('Payment Status: ACTIVE')
-            console.log('Staff Username:', staffCreds.username)
             
             res.json({ 
               success: true, 
@@ -562,7 +468,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
               }
             })
           } else {
-            console.log('⚠️ No pending data found, but subscription is active')
             // No pending data found, but subscription is active
             res.json({ 
               success: true, 
@@ -572,7 +477,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
             })
           }
         } catch (storeError) {
-          console.error('❌ Error creating store:', storeError)
           res.json({ 
             success: true, 
             subscription: subscription,
@@ -584,7 +488,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
         break
       
       case 'APPROVAL_PENDING':
-        console.log('⏳ Subscription is APPROVAL_PENDING - User needs to complete payment')
         // Subscription is still pending approval
         res.json({ 
           success: false, 
@@ -595,7 +498,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
         break
       
       case 'APPROVED':
-        console.log('✅ Subscription is APPROVED - Should be active soon')
         // Subscription is approved but not yet active (should be rare)
         res.json({ 
           success: true, 
@@ -606,7 +508,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
         break
       
       case 'CANCELLED':
-        console.log('❌ Subscription was CANCELLED')
         // Subscription was cancelled
         res.json({ 
           success: false, 
@@ -617,7 +518,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
         break
       
       case 'EXPIRED':
-        console.log('❌ Subscription has EXPIRED')
         // Subscription has expired
         res.json({ 
           success: false, 
@@ -628,7 +528,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
         break
       
       default:
-        console.log('❓ Unknown subscription status:', subscription.status)
         // Unknown status
         res.json({ 
           success: false, 
@@ -638,8 +537,6 @@ router.post('/check-subscription-status', requireAuth, async (req, res) => {
         })
     }
   } catch (error) {
-    console.error('❌ Error checking subscription status:', error)
-    console.error('Error response:', error.response?.data)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -678,7 +575,6 @@ router.post('/activate-subscription', requireAuth, async (req, res) => {
       })
     }
   } catch (error) {
-    console.error('Error checking subscription status:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -701,7 +597,6 @@ router.get('/subscription/:subscriptionId', requireAuth, async (req, res) => {
 
     res.json({ success: true, subscription: response.data })
   } catch (error) {
-    console.error('Error getting subscription details:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -725,7 +620,6 @@ router.post('/cancel-subscription', requireAuth, async (req, res) => {
 
     res.json({ success: true, subscription: response.data })
   } catch (error) {
-    console.error('Error canceling subscription:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -734,93 +628,43 @@ router.post('/cancel-subscription', requireAuth, async (req, res) => {
 router.post('/webhook', async (req, res) => {
   try {
     const event = req.body
-    console.log('=== PAYPAL WEBHOOK EVENT RECEIVED ===')
-    console.log('Event Type:', event.event_type)
-    console.log('Event ID:', event.id)
-    console.log('Event Time:', event.create_time)
-    console.log('Resource Type:', event.resource_type)
-    console.log('Resource ID:', event.resource?.id)
 
     switch (event.event_type) {
       case 'BILLING.SUBSCRIPTION.ACTIVATED':
-        console.log('✅ SUBSCRIPTION ACTIVATED:', event.resource.id)
-        console.log('Subscription Details:', {
-          id: event.resource.id,
-          status: event.resource.status,
-          start_time: event.resource.start_time,
-          billing_info: event.resource.billing_info
-        })
         // Handle subscription activation
         break
       
       case 'BILLING.SUBSCRIPTION.CANCELLED':
-        console.log('❌ SUBSCRIPTION CANCELLED:', event.resource.id)
-        console.log('Cancellation Details:', {
-          id: event.resource.id,
-          status: event.resource.status,
-          reason: event.resource.status_change_note
-        })
         // Handle subscription cancellation
         await handleSubscriptionCancellation(event.resource.id, event.resource)
         break
       
       case 'BILLING.SUBSCRIPTION.SUSPENDED':
-        console.log('⚠️ SUBSCRIPTION SUSPENDED:', event.resource.id)
-        console.log('Suspension Details:', {
-          id: event.resource.id,
-          status: event.resource.status,
-          reason: event.resource.status_change_note
-        })
         // Handle subscription suspension (usually due to payment failures)
         await handleSubscriptionSuspension(event.resource.id, event.resource)
         break
       
       case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':
-        console.log('❌ SUBSCRIPTION PAYMENT FAILED:', event.resource.id)
-        console.log('Payment Failure Details:', {
-          subscriptionId: event.resource.id,
-          failureReason: event.resource.failure_reason,
-          amount: event.resource.amount,
-          currency: event.resource.currency_code
-        })
         // Handle payment failure
         await handlePaymentFailure(event.resource.id, event.resource)
         break
       
       case 'PAYMENT.SALE.COMPLETED':
-        console.log('✅ PAYMENT SALE COMPLETED:', event.resource.id)
-        console.log('Payment Success Details:', {
-          paymentId: event.resource.id,
-          amount: event.resource.amount,
-          currency: event.resource.currency_code,
-          billingAgreementId: event.resource.billing_agreement_id,
-          paymentMethod: event.resource.payment_instruction?.payment_method_type
-        })
         // Handle successful payment
         await handlePaymentSuccess(event.resource.id, event.resource)
         break
       
       case 'PAYMENT.SALE.DENIED':
-        console.log('❌ PAYMENT SALE DENIED:', event.resource.id)
-        console.log('Payment Denied Details:', {
-          paymentId: event.resource.id,
-          reason: event.resource.reason,
-          amount: event.resource.amount,
-          currency: event.resource.currency_code
-        })
         // Handle denied payment
         await handlePaymentDenied(event.resource.id, event.resource)
         break
       
       default:
-        console.log('❓ UNHANDLED WEBHOOK EVENT:', event.event_type)
-        console.log('Event Data:', JSON.stringify(event, null, 2))
+        // Unhandled webhook event
     }
 
-    console.log('=== WEBHOOK PROCESSING COMPLETE ===')
     res.json({ success: true })
   } catch (error) {
-    console.error('❌ Error processing webhook:', error)
     res.status(500).json({ error: 'Webhook processing failed' })
   }
 })
@@ -843,7 +687,6 @@ const handleSubscriptionCancellation = async (subscriptionId, subscriptionData) 
       // Optionally notify the user
       const user = await User.findById(store._user)
       if (user) {
-        console.log(`User ${user.email} subscription cancelled for store ${store.storeName}`)
         // Here you could send an email notification
       }
     }
@@ -870,7 +713,6 @@ const handleSubscriptionSuspension = async (subscriptionId, subscriptionData) =>
       // Notify the user about the suspension
       const user = await User.findById(store._user)
       if (user) {
-        console.log(`User ${user.email} subscription suspended for store ${store.storeName}`)
         // Here you could send an email notification about payment issues
       }
     }
@@ -882,14 +724,6 @@ const handleSubscriptionSuspension = async (subscriptionId, subscriptionData) =>
 // Handle payment failure
 const handlePaymentFailure = async (subscriptionId, paymentData) => {
   try {
-    console.log('=== PAYMENT FAILURE HANDLER ===')
-    console.log('Subscription ID:', subscriptionId)
-    console.log('Payment Failure Data:', {
-      failureReason: paymentData.failure_reason,
-      amount: paymentData.amount,
-      currency: paymentData.currency_code,
-      status: paymentData.status
-    })
     
     const Store = mongoose.model('Store')
     const User = mongoose.model('User')
@@ -899,7 +733,6 @@ const handlePaymentFailure = async (subscriptionId, paymentData) => {
     const store = await Store.findOne({ subscriptionId })
     
     if (store) {
-      console.log('✅ Found store for failed payment:', store.storeName)
       
       // Update payment failure tracking
       store.paymentStatus = 'FAILED'
@@ -907,9 +740,6 @@ const handlePaymentFailure = async (subscriptionId, paymentData) => {
       store.lastPaymentFailure = new Date()
       store.paymentFailureReason = paymentData.failure_reason || 'Payment failed'
       await store.save()
-      console.log('✅ Store payment status updated to FAILED')
-      console.log('Failure Count:', store.paymentFailureCount)
-      console.log('Failure Reason:', store.paymentFailureReason)
       
       // Record payment failure in history
       const paymentRecord = new PaymentHistory({
@@ -932,36 +762,14 @@ const handlePaymentFailure = async (subscriptionId, paymentData) => {
         processedAt: new Date()
       })
       await paymentRecord.save()
-      console.log('✅ PaymentHistory record created for failed payment')
-      console.log('Payment Failure Record Details:', {
-        amount: paymentRecord.amount,
-        currency: paymentRecord.currency,
-        status: paymentRecord.status,
-        failureReason: paymentRecord.failureReason,
-        processedAt: paymentRecord.processedAt
-      })
-      
-      // Log the payment failure details
-      console.log('Payment failure details:', {
-        subscriptionId,
-        storeName: store.storeName,
-        failureReason: paymentData.failure_reason,
-        amount: paymentData.amount,
-        currency: paymentData.currency_code,
-        failureCount: store.paymentFailureCount
-      })
       
       // Notify the user about the payment failure
       const user = await User.findById(store._user)
       if (user) {
-        console.log(`❌ Payment failed for user ${user.email} store ${store.storeName}`)
         // Here you could send an email notification about the payment failure
       }
-    } else {
-      console.log('⚠️ No store found for subscription ID:', subscriptionId)
     }
     
-    console.log('=== PAYMENT FAILURE HANDLER COMPLETE ===')
   } catch (error) {
     console.error('❌ Error handling payment failure:', error)
   }
@@ -970,35 +778,20 @@ const handlePaymentFailure = async (subscriptionId, paymentData) => {
 // Handle payment success
 const handlePaymentSuccess = async (paymentId, paymentData) => {
   try {
-    console.log('=== PAYMENT SUCCESS HANDLER ===')
-    console.log('Payment ID:', paymentId)
-    console.log('Payment Data:', {
-      amount: paymentData.amount,
-      currency: paymentData.currency_code,
-      billingAgreementId: paymentData.billing_agreement_id,
-      paymentMethod: paymentData.payment_instruction?.payment_method_type,
-      status: paymentData.state
-    })
-    
-    // This might be for a subscription payment
-    console.log(`✅ Payment successful: ${paymentId}`)
     
     // If this is a subscription payment, update the store
     if (paymentData.billing_agreement_id) {
-      console.log('🔍 Found billing agreement ID, updating store...')
       const Store = mongoose.model('Store')
       const PaymentHistory = mongoose.model('PaymentHistory')
       const store = await Store.findOne({ subscriptionId: paymentData.billing_agreement_id })
       
       if (store) {
-        console.log('✅ Found store for subscription:', store.storeName)
         
         store.paymentStatus = 'ACTIVE'
         store.lastPaymentDate = new Date()
         store.paymentFailureCount = 0 // Reset failure count on successful payment
         store.paymentFailureReason = null
         await store.save()
-        console.log('✅ Store payment status updated to ACTIVE')
         
         // Record successful payment in history
         const paymentRecord = new PaymentHistory({
@@ -1021,25 +814,9 @@ const handlePaymentSuccess = async (paymentId, paymentData) => {
           processedAt: new Date()
         })
         await paymentRecord.save()
-        console.log('✅ PaymentHistory record created for successful payment')
-        console.log('Payment Record Details:', {
-          amount: paymentRecord.amount,
-          currency: paymentRecord.currency,
-          status: paymentRecord.status,
-          paymentMethod: paymentRecord.paymentMethod,
-          processedAt: paymentRecord.processedAt
-        })
-        
-        console.log(`✅ Payment successful for store ${store.storeName}`)
-      } else {
-        console.log('⚠️ No store found for billing agreement ID:', paymentData.billing_agreement_id)
       }
-    } else {
-      console.log('⚠️ No billing agreement ID found in payment data')
     }
     
-    console.log('=== PAYMENT SUCCESS HANDLER COMPLETE ===')
-    // You could update payment records or send confirmation emails here
   } catch (error) {
     console.error('❌ Error handling payment success:', error)
   }
@@ -1048,7 +825,6 @@ const handlePaymentSuccess = async (paymentId, paymentData) => {
 // Handle payment denied
 const handlePaymentDenied = async (paymentId, paymentData) => {
   try {
-    console.log(`Payment denied: ${paymentId}`)
     
     // Handle denied payment (similar to payment failure)
     // You might want to log this or notify users
@@ -1080,12 +856,7 @@ router.get('/auth-check', requireAuth, async (req, res) => {
 // Test PayPal credentials
 router.get('/test', requireAuth, async (req, res) => {
   try {
-    console.log('Testing PayPal credentials...')
-    console.log('Client ID:', PAYPAL_CLIENT_ID)
-    console.log('Base URL:', getPayPalUrl(''))
-    
     const accessToken = await getPayPalAccessToken()
-    console.log('Successfully got access token:', accessToken ? 'YES' : 'NO')
     
     res.json({ 
       success: true, 
@@ -1093,7 +864,6 @@ router.get('/test', requireAuth, async (req, res) => {
       hasAccessToken: !!accessToken
     })
   } catch (error) {
-    console.error('PayPal test failed:', error)
     res.status(500).json({ 
       success: false, 
       error: error.message,

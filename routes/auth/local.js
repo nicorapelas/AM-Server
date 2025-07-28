@@ -49,9 +49,9 @@ transporter.use('compile', hbs(handlebarOptions))
 // Add DKIM and SPF settings
 transporter.verify(function(error, success) {
   if (error) {
-    console.log(error);
+    // Email verification error
   } else {
-    console.log("Server is ready to take our messages");
+    // Server is ready to take messages
   }
 });
 
@@ -75,9 +75,9 @@ mailManRegister = (email, id) => {
   }
   transporter.sendMail(mailOptionsRegister, (error, info) => {
     if (error) {
-      console.log(error)
+      // Email sending error
     } else {
-      console.log('Email sent: ' + info.response)
+      // Email sent successfully
     }
   })
 }
@@ -102,9 +102,9 @@ mailManForgotPassword = (email, token) => {
   }
   transporter.sendMail(mailOptionsForgotPassword, (error, info) => {
     if (error) {
-      console.log(error)
+      // Email sending error
     } else {
-      console.log('Email sent: ' + info.response)
+      // Email sent successfully
     }
   })
 }
@@ -129,9 +129,9 @@ mailManEmailUpdate = (email, pin) => {
   }
   transporter.sendMail(mailOptionsEmailUpdate, (error, info) => {
     if (error) {
-      console.log(error)
+      // Email sending error
     } else {
-      console.log('Email sent: ' + info.response)
+      // Email sent successfully
     }
   })
 }
@@ -150,7 +150,6 @@ router.get('/fetch-user', requireAuth, (req, res) => {
       return
     }
   } catch (error) {
-    console.log(error)
     res.status(500).json({ error: 'Server error' })
   }
 })
@@ -320,7 +319,6 @@ router.post('/forgot', (req, res) => {
         return
       } catch (err) {
         res.json(err)
-        console.log(err)
         return
       }
     },
@@ -373,7 +371,6 @@ router.post('/reset', (req, res) => {
             // Validation check
             const { errors, isValid } = validatePasswordReset(req.body)
             if (!isValid) {
-              console.log(errors)
               res.json({ error: errors })
               return
             }
@@ -391,7 +388,6 @@ router.post('/reset', (req, res) => {
     ],
     (err) => {
       res.json(err)
-      console.log(err)
       return
     }
   )
@@ -401,7 +397,6 @@ router.post('/reset', (req, res) => {
 // @desc   Update user profile
 // @access protected
 router.patch('/update-user-profile', requireAuth, async (req, res) => {
-  console.log('req.body @ update-user-profile', req.body)
   const { email, name } = req.body
 
   // Validate email
@@ -454,7 +449,6 @@ router.patch('/update-user-profile', requireAuth, async (req, res) => {
     })
 
   } catch (err) {
-    console.error('Error in update-user-profile:', err)
     return res.status(500).json({ error: 'Server error' })
   }
 })
@@ -507,7 +501,6 @@ router.post('/verify-email-update-pin', requireAuth, async (req, res) => {
     return res.json(updatedUser)
 
   } catch (err) {
-    console.error('Error in verify-email-update-pin:', err)
     return res.status(500).json({ error: 'Server error' })
   }
 })
@@ -546,7 +539,6 @@ router.patch('/update-password-via-profile', requireAuth, async (req, res) => {
     })
 
   } catch (err) {
-    console.error('Error in update-password-via-profile:', err)
     return res.status(500).json({ error: 'Server error' })
   }
 })
@@ -555,7 +547,6 @@ router.patch('/update-password-via-profile', requireAuth, async (req, res) => {
 // @desc   Delete account
 // @access protected
 router.delete('/delete-account', requireAuth, async (req, res) => {
-  console.log('Goodbuy')
   const user = await User.findById(req.user._id)
   await user.remove()
   return res.json({ success: 'Account deleted successfully' })
