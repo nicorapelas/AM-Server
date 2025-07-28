@@ -339,7 +339,7 @@ router.get('/reset/:token', (req, res) => {
         res.json(err)
         return
       }
-      res.redirect(`http://localhost:3000/reset-password/${req.params.token}`)
+      res.redirect(`https://www.arcademanager.app/reset-password/${req.params.token}`)
       return
     }
   )
