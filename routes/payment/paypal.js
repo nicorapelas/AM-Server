@@ -35,18 +35,18 @@ const handlebarOptions = {
   extName: '.handlebars',
 }
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: 'zoho',
   auth: {
-    user: keys.google?.authenticateUser || process.env.GOOGLE_AUTH_USER,
-    pass: keys.google?.authenticatePassword || process.env.GOOGLE_AUTH_PASSWORD,
+    user: keys.zoho?.authenticateUser || process.env.ZOHO_AUTH_USER,
+    pass: keys.zoho?.authenticatePassword || process.env.ZOHO_AUTH_PASSWORD,
   },
   headers: {
     'X-Entity-Ref-ID': 'arcademanager',
-    'Reply-To': 'billing@arcademanager.app'
+    'Reply-To': 'hello@arcademanager.app'
   },
   from: {
     name: 'Arcade Manager',
-    address: 'billing@arcademanager.app'
+    address: 'hello@arcademanager.app'
   }
 })
 
@@ -67,7 +67,7 @@ mailManBillingSuccessfullSubscription = (email, id) => {
   const mailOptionsRegister = {
     from: {
       name: 'Arcade Manager',
-      address: 'billing@arcademanager.app'
+      address: 'hello@arcademanager.app'
     },
     to: email,
     subject: 'Arcade Manager - Billing Successfull Subscription',
@@ -77,7 +77,7 @@ mailManBillingSuccessfullSubscription = (email, id) => {
     },
     headers: {
       'X-Entity-Ref-ID': 'arcademanager',
-      'Reply-To': 'billing@arcademanager.app'
+      'Reply-To': 'hello@arcademanager.app'
     }
   }
   transporter.sendMail(mailOptionsBillingSuccessfullSubscription, (error, info) => {

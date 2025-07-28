@@ -20,31 +20,31 @@ const handlebarOptions = {
 }
 
 // Create transporter for support emails
-const supportTransporter = nodemailer.createTransport({
-  service: 'gmail',
+const transporter = nodemailer.createTransport({
+  service: 'zoho',
   auth: {
-    user: keys.google?.authenticateUser || process.env.GOOGLE_AUTH_USER,
-    pass: keys.google?.authenticatePassword || process.env.GOOGLE_AUTH_PASSWORD,
+    user: keys.zoho?.authenticateUser || process.env.ZOHO_AUTH_USER,
+    pass: keys.zoho?.authenticatePassword || process.env.ZOHO_AUTH_PASSWORD,
   },
   headers: {
     'X-Entity-Ref-ID': 'arcademanager',
-    'Reply-To': 'support@arcademanager.app'
+    'Reply-To': 'hello@arcademanager.app'
   },
   from: {
-    name: 'Arcade Manager Support',
-    address: 'authenticator@cvcloud.app'
+    name: 'Arcade Manager',
+    address: 'hello@arcademanager.app'
   }
 })
 
 // Add the handlebars configuration
-supportTransporter.use('compile', hbs(handlebarOptions))
+transporter.use('compile', hbs(handlebarOptions))
 
 // Support email function
 const sendSupportEmail = (supportData) => {
   const mailOptions = {
     from: {
-      name: 'Arcade Manager Support',
-      address: 'authenticator@cvcloud.app'
+      name: 'Arcade Manager',
+      address: 'hello@arcademanager.app'
     },
     to: 'nicorapelas@gmail.com',
     subject: `Arcade Manager - ${supportData.formType === 'support' ? 'Support Request' : 'Feature Suggestion'} from ${supportData.name}`,
@@ -56,11 +56,11 @@ const sendSupportEmail = (supportData) => {
     },
     headers: {
       'X-Entity-Ref-ID': 'arcademanager',
-      'Reply-To': 'support@arcademanager.app'
+      'Reply-To': 'hello@arcademanager.app'
     }
   }
 
-  supportTransporter.sendMail(mailOptions, (error, info) => {
+  transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error('Error sending support email:', error)
     } else {

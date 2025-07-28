@@ -28,18 +28,18 @@ const handlebarOptions = {
   extName: '.handlebars',
 }
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: 'zoho',
   auth: {
-    user: keys.google?.authenticateUser || process.env.GOOGLE_AUTH_USER,
-    pass: keys.google?.authenticatePassword || process.env.GOOGLE_AUTH_PASSWORD,
+    user: keys.zoho?.authenticateUser || process.env.ZOHO_AUTH_USER,
+    pass: keys.zoho?.authenticatePassword || process.env.ZOHO_AUTH_PASSWORD,
   },
   headers: {
     'X-Entity-Ref-ID': 'arcademanager',
-    'Reply-To': 'auth@arcademanager.app'
+    'Reply-To': 'hello@arcademanager.app'
   },
   from: {
     name: 'Arcade Manager',
-    address: 'auth@arcademanager.app'
+    address: 'hello@arcademanager.app'
   }
 })
 
@@ -60,7 +60,7 @@ mailManRegister = (email, id) => {
   const mailOptionsRegister = {
     from: {
       name: 'Arcade Manager',
-      address: 'auth@arcademanager.app'
+      address: 'hello@arcademanager.app'
     },
     to: email,
     subject: 'Arcade Manager - User authentication',
@@ -70,7 +70,7 @@ mailManRegister = (email, id) => {
     },
     headers: {
       'X-Entity-Ref-ID': 'arcademanager',
-      'Reply-To': 'auth@arcademanager.app'
+      'Reply-To': 'hello@arcademanager.app'
     }
   }
   transporter.sendMail(mailOptionsRegister, (error, info) => {
@@ -87,7 +87,7 @@ mailManForgotPassword = (email, token) => {
   const mailOptionsForgotPassword = {
     from: {
       name: 'Arcade Manager',
-      address: 'auth@arcademanager.app'
+      address: 'hello@arcademanager.app'
     },
     to: email,
     subject: 'Arcade Manager - User authentication',
@@ -97,7 +97,7 @@ mailManForgotPassword = (email, token) => {
     },
     headers: {
       'X-Entity-Ref-ID': 'arcademanager',
-      'Reply-To': 'auth@arcademanager.app'
+      'Reply-To': 'hello@arcademanager.app'
     }
   }
   transporter.sendMail(mailOptionsForgotPassword, (error, info) => {
@@ -114,7 +114,7 @@ mailManEmailUpdate = (email, pin) => {
   const mailOptionsEmailUpdate = {
     from: {
       name: 'Arcade Manager',
-      address: 'auth@arcademanager.app'
+      address: 'hello@arcademanager.app'
     },
     to: email,
     subject: `Arcade Manager - Email Update Verification PIN: ${pin}`,
@@ -124,7 +124,7 @@ mailManEmailUpdate = (email, pin) => {
     },
     headers: {
       'X-Entity-Ref-ID': 'arcademanager',
-      'Reply-To': 'auth@arcademanager.app'
+      'Reply-To': 'hello@arcademanager.app'
     }
   }
   transporter.sendMail(mailOptionsEmailUpdate, (error, info) => {

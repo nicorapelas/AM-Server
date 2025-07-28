@@ -44,6 +44,10 @@ const keys = {
     authenticateUser: process.env.GOOGLE_AUTHENTICATE_USER,
     authenticatePassword: process.env.GOOGLE_AUTHENTICATE_PASSWORD,
   },
+  zoho: {
+    authenticateUser: process.env.ZOHO_AUTH_USER,
+    authenticatePassword: process.env.ZOHO_AUTH_PASSWORD,
+  },
   latestAppVersion: {
     v: process.env.LATEST_APP_VERSION,
   },
