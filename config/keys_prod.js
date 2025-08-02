@@ -38,11 +38,11 @@ const keys = {
   managment: {
     id: process.env.MANAGMENT_ID,
   },
-  google: {
-    shareCvUser: process.env.GOOGLE_SHARE_CV_USER,
-    shareCvPassword: process.env.GOOGLE_SHARE_CV_PASSWORD,
-    authenticateUser: process.env.GOOGLE_AUTHENTICATE_USER,
-    authenticatePassword: process.env.GOOGLE_AUTHENTICATE_PASSWORD,
+  zoho: {
+    shareCvUser: process.env.ZOHO_SHARE_CV_USER,
+    shareCvPassword: process.env.ZOHO_SHARE_CV_PASSWORD,
+    authenticateUser: process.env.ZOHO_AUTH_USER || 'hello@arcademanager.app',
+    authenticatePassword: process.env.ZOHO_AUTH_PASSWORD,
   },
   latestAppVersion: {
     v: process.env.LATEST_APP_VERSION,

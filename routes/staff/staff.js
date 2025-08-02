@@ -1,20 +1,118 @@
 const express = require('express')
 const mongoose = require('mongoose')
+const nodemailer = require('nodemailer')
+const hbs = require('nodemailer-express-handlebars')
+const path = require('path')
 const Staff = mongoose.model('Staff')
+const User = mongoose.model('User')
 const requireAuth = require('../../middlewares/requireAuth')
+const keys = require('../../config/keys').keys
 const router = express.Router()
+
+// Nodemailer Handlebars
+const handlebarOptions = {
+  viewEngine: {
+    extName: '.handlebars',
+    partialsDir: path.resolve('./templates/mailTemplates'),
+    defaultLayout: false,
+  },
+  viewPath: path.resolve('./templates/mailTemplates'),
+  extName: '.handlebars',
+}
+const transporter = nodemailer.createTransport({
+  host: 'smtp.zoho.com',
+  port: 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: keys.zoho?.authenticateUser || process.env.ZOHO_AUTH_USER || 'hello@arcademanager.app',
+    pass: keys.zoho?.authenticatePassword || process.env.ZOHO_AUTH_PASSWORD,
+  },
+  headers: {
+    'X-Entity-Ref-ID': 'arcademanager',
+    'Reply-To': 'hello@arcademanager.app'
+  },
+  from: {
+    name: 'Arcade Manager',
+    address: 'hello@arcademanager.app'
+  }
+})
+
+// Add the handlebars configuration
+transporter.use('compile', hbs(handlebarOptions))
+
+// Staff welcome email function
+const sendStaffWelcomeEmail = (staffData) => {
+  const mailOptions = {
+    from: {
+      name: 'Arcade Manager',
+      address: 'hello@arcademanager.app'
+    },
+    to: staffData.email,
+    subject: 'Arcade Manager - Welcome to the Team!',
+    template: 'staffUserWelcomeTemplate',
+    context: {
+      firstName: staffData.firstName,
+      lastName: staffData.lastName,
+      username: staffData.username,
+      pin: staffData.pin,
+      position: staffData.position,
+      startDate: staffData.startDate
+    },
+    headers: {
+      'X-Entity-Ref-ID': 'arcademanager',
+      'Reply-To': 'hello@arcademanager.app'
+    }
+  }
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending staff welcome email:', error)
+    } else {
+      console.log('Staff welcome email sent: ' + info.response)
+    }
+  })
+}
 
 router.post('/create-staff', requireAuth, async (req, res) => {
   const { storeId, firstName, lastName, email, phone, position, startDate, paymentTerms, paymentMethod, paymentValue, username, pin, editFinancialEnabled, deleteFinancialEnabled } = req.body
   const staff = new Staff({ _user: req.user._id, storeId, firstName, lastName, email, phone, position, startDate, paymentTerms, paymentMethod, paymentValue, username, pin, editFinancialEnabled, deleteFinancialEnabled })
-  await staff.save()
+  await staff.save() 
+  const newUser = new User({
+    username: username,
+    email: username,
+    password: pin,
+    localId: true,
+    recipients: { email: email },
+    emailVerified: true,
+    staffCreds: true,
+    staffStore: storeId,
+    created: Date.now(),
+  })
+  await newUser.save()
+  
+  // Send welcome email to new staff member
+  try {
+    sendStaffWelcomeEmail({
+      firstName,
+      lastName,
+      email,
+      username,
+      pin,
+      position,
+      startDate
+    })
+  } catch (error) {
+    console.error('Error sending welcome email:', error)
+  }
+  
   const staffs = await Staff.find({ storeId })
   res.json(staffs)
 })
 
-router.post('/fetch-store-staff', requireAuth, async (req, res) => {
+router.post('/fetch-store-staff', requireAuth, async (req, res) => { 
   const { storeId } = req.body
-  const staffs = await Staff.find({ storeId })
+  const staffs = await Staff.find({ storeId })  
+  console.log(staffs)
   res.json(staffs)
 })
 
@@ -127,6 +225,12 @@ router.post('/add-loan-payment', requireAuth, async (req, res) => {
     console.error('Error adding loan payment:', error)
     res.status(500).json({ error: 'Error adding loan payment' })
   }
+})
+
+router.post('/check-username-availability', requireAuth, async (req, res) => {
+  const { username } = req.body
+  const staff = await Staff.findOne({ username })
+  res.json({ available: !staff })
 })
 
 
