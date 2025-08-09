@@ -182,6 +182,7 @@ router.post('/register', async (req, res) => {
       password,
       affiliatceIntroCode,
       localId: true,
+      bossCreds: true,
       recipients: { email },
       created: Date.now(),
     })
