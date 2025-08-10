@@ -219,7 +219,7 @@ router.post('/login', async (req, res) => {
   const errors = {}
   const { email, password } = req.body
   // Check if user with email registered
-  const user = await User.findOne({ email })
+  const user = await User.findOne({ username: email })
   if (!user) {
     errors.email = 'Invalid username or password'
     res.json({ error: errors })
